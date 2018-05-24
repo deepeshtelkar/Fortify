@@ -6,6 +6,7 @@ import os
 import csv
 import time
 import requests
+import openpyxl as xl 
 
 
 class get_urls:
@@ -13,9 +14,6 @@ class get_urls:
 
 	# -- constructor --
 	def __init__(self):
-		self.titles = ['Date', 'URL', 'Critical', 'High', 'Low']
-		self.output_file = "job-data.csv"
-
 		self.urls = [
 			'https://jenkins.optum.com/bff/job/API-Gateway/job/API-Gateway-Fortify/lastSuccessfulBuild/console',
 			'https://jenkins.optum.com/bff/job/Fox-UI/job/Fox-UI-Fortify/lastSuccessfulBuild/console',
@@ -27,12 +25,16 @@ class get_urls:
 			'https://jenkins.optum.com/bff/job/Member-Validation/job/Member-Validation-Fortify/lastSuccessfulBuild/console'
 		]
 
+		self.excel_file = "job_data.xlsx"
+		self.output_file = "job-data.csv"
+		self.titles = ['Date', 'URL', 'Critical', 'High', 'Low']
+
 		return
 
 
 	# -- get URL content --
 	def get_url_content(self, url):
-		result = requests.get(url)
+		result = requests.get(url[0])
 		page = result.text
 
 		return page
@@ -54,7 +56,9 @@ class get_urls:
 			if lines[i].find("Finished at:") >= 0:
 				ini = lines[i].find(":") + 1
 				end = lines[i][ini:].find("T") + ini
-				row['Date'] = lines[i][ini:end].strip()
+				tmpdate = lines[i][ini:end].strip()
+				tmp = tmpdate.split("-")
+				row['Date'] = tmp[1]+"/"+tmp[2]+"/"+tmp[0]
 
 			if lines[i].find("Scan Results") >= 0:
 				ini = lines[i+2].find(":") + 1
@@ -79,6 +83,59 @@ class get_urls:
 		return
 
 
+	# -- add results to excel file --
+	def write_excel(self, excel_file, data):
+		# -- open excel_file for reading to get data cells --
+		wb = xl.load_workbook(excel_file, data_only=True)
+		sheet = wb['Sheet1']
+
+		ini_row, cols = self.get_columns(sheet)
+
+		# -- reopen excel_file for writing --
+		wb = xl.load_workbook(excel_file)
+		sheet = wb['Sheet1']
+
+		sheet.cell(row=ini_row, column=cols['URL']).value = data[0]['Date']
+		sheet.cell(row=ini_row, column=cols['URL']+1).value = "URL"
+
+		r = 1
+		for i in data:
+			url = sheet.cell(ini_row+r, column=cols['URL']).value
+
+			for n in data:
+				if url == n['URL']:
+					sheet.cell(row=ini_row+r, column=cols['URL']).value = n['Critical']
+					sheet.cell(row=ini_row+r+1, column=cols['URL']).value = n['High']
+					sheet.cell(row=ini_row+r+2, column=cols['URL']).value = n['Low']
+					sheet.cell(row=ini_row+r, column=cols['URL']+1).value = '=HYPERLINK("{}", "{}")'.format(n['URL'], n['URL'])
+
+			r += 4
+
+		wb.save(excel_file)
+
+		return
+
+
+	# -- get columns from excel sheet --
+	def get_columns(self, sheet):
+		cols = {}
+		ini_row = 0
+
+		# -- find begin of data --
+		for r in range(1, 50):
+			if sheet.cell(row=r, column=1).value is not None \
+			and ini_row == 0:
+				ini_row = r
+
+		for c in range(1, 50):
+			if sheet.cell(row=ini_row, column=c).value is not None:
+				value = sheet.cell(row=ini_row, column=c).value
+				cols[value] = c
+
+		return ini_row, cols
+
+
+
 ######################################################################################################################
 ## MAIN
 
@@ -93,7 +150,7 @@ if __name__ == "__main__":
 		row = gu.get_data_content(page, i[0])
 		data.append(row)
 
-	gu.write_csv(gu.output_file, data)
-
+	#gu.write_csv(gu.output_file, data)
+	gu.write_excel(gu.excel_file, data)
 
 
