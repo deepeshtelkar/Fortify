@@ -34,7 +34,7 @@ class get_urls:
 
 	# -- get URL content --
 	def get_url_content(self, url):
-		result = requests.get(url[0])
+		result = requests.get(url)
 		page = result.text
 
 		return page
@@ -147,7 +147,7 @@ if __name__ == "__main__":
 
 	for i in gu.urls:
 		page = gu.get_url_content(i)
-		row = gu.get_data_content(page, i[0])
+		row = gu.get_data_content(page, i)
 		data.append(row)
 
 	#gu.write_csv(gu.output_file, data)
