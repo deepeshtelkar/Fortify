@@ -34,7 +34,7 @@ class get_urls:
 
 	# -- get URL content --
 	def get_url_content(self, url):
-		result = requests.get(url[0])
+		result = requests.get(url)
 		page = result.text
 
 		return page
@@ -85,6 +85,8 @@ class get_urls:
 
 	# -- add results to excel file --
 	def write_excel(self, excel_file, data):
+		today = time.strftime("%m/%d/%Y", time.localtime())
+
 		# -- open excel_file for reading to get data cells --
 		wb = xl.load_workbook(excel_file, data_only=True)
 		sheet = wb['Sheet1']
@@ -95,7 +97,7 @@ class get_urls:
 		wb = xl.load_workbook(excel_file)
 		sheet = wb['Sheet1']
 
-		sheet.cell(row=ini_row, column=cols['URL']).value = data[0]['Date']
+		sheet.cell(row=ini_row, column=cols['URL']).value = today
 		sheet.cell(row=ini_row, column=cols['URL']+1).value = "URL"
 
 		r = 1
@@ -107,7 +109,7 @@ class get_urls:
 					sheet.cell(row=ini_row+r, column=cols['URL']).value = n['Critical']
 					sheet.cell(row=ini_row+r+1, column=cols['URL']).value = n['High']
 					sheet.cell(row=ini_row+r+2, column=cols['URL']).value = n['Low']
-					sheet.cell(row=ini_row+r, column=cols['URL']+1).value = '=HYPERLINK("{}", "{}")'.format(n['URL'], n['URL'])
+					sheet.cell(row=ini_row+r, column=cols['URL']+1).value = n['URL']
 
 			r += 4
 
@@ -147,7 +149,7 @@ if __name__ == "__main__":
 
 	for i in gu.urls:
 		page = gu.get_url_content(i)
-		row = gu.get_data_content(page, i[0])
+		row = gu.get_data_content(page, i)
 		data.append(row)
 
 	#gu.write_csv(gu.output_file, data)
